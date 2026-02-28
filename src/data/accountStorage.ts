@@ -1,32 +1,42 @@
-import type { Account, Hero } from "../models/account";
+import type { Account } from "../models/account";
+import { hydrateHero } from "../models/heroProgression";
 
 export const ACCOUNT_STORAGE_KEY = "gen_account";
 
-const isHero = (value: unknown): value is Hero => {
+const normalizeAccount = (value: unknown): Account | null => {
   if (typeof value !== "object" || value === null) {
-    return false;
-  }
-
-  const candidate = value as Partial<Hero>;
-  return typeof candidate.id === "string" && typeof candidate.name === "string";
-};
-
-const isAccount = (value: unknown): value is Account => {
-  if (typeof value !== "object" || value === null) {
-    return false;
+    return null;
   }
 
   const candidate = value as Partial<Account>;
 
   if (typeof candidate.login !== "string" || typeof candidate.nickname !== "string") {
-    return false;
+    return null;
   }
 
-  if (!Array.isArray(candidate.heroes) || !candidate.heroes.every(isHero)) {
-    return false;
+  if (!Array.isArray(candidate.heroes)) {
+    return null;
   }
 
-  return candidate.activeHeroId === undefined || typeof candidate.activeHeroId === "string";
+  const normalizedHeroes = candidate.heroes
+    .map(hydrateHero)
+    .filter((hero): hero is NonNullable<ReturnType<typeof hydrateHero>> => hero !== null);
+  if (normalizedHeroes.length !== candidate.heroes.length) {
+    return null;
+  }
+
+  const activeHeroId =
+    typeof candidate.activeHeroId === "string" &&
+    normalizedHeroes.some((hero) => hero.id === candidate.activeHeroId)
+      ? candidate.activeHeroId
+      : undefined;
+
+  return {
+    login: candidate.login,
+    nickname: candidate.nickname,
+    heroes: normalizedHeroes,
+    activeHeroId,
+  };
 };
 
 export const saveAccount = (account: Account): void => {
@@ -42,7 +52,7 @@ export const loadAccount = (): Account | null => {
 
   try {
     const parsed: unknown = JSON.parse(serialized);
-    return isAccount(parsed) ? parsed : null;
+    return normalizeAccount(parsed);
   } catch {
     return null;
   }

@@ -1,13 +1,12 @@
 import { create } from "zustand";
 import { loadAccount, saveAccount } from "../data/accountStorage";
 import type { Account, Hero } from "../models/account";
+import { createNewHero } from "../models/heroProgression";
 
 const createHero = (name: string): Hero => {
   const normalizedName = name.trim();
-  return {
-    id: `hero_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-    name: normalizedName,
-  };
+  const id = `hero_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  return createNewHero(id, normalizedName);
 };
 
 type AppState = {

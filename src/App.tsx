@@ -10,6 +10,7 @@ import {
   type SeedAccount,
 } from "./data/seedAccounts";
 import type { Account, Hero } from "./models/account";
+import { getExpRequiredForNextLevel, hydrateHero } from "./models/heroProgression";
 import { useAppStore } from "./store/useAppStore";
 
 const LoginScreen: FC = () => {
@@ -41,7 +42,9 @@ const LoginScreen: FC = () => {
         : {
             login: selectedSeed.login,
             nickname: selectedSeed.nickname,
-            heroes: selectedSeed.heroes ?? [],
+            heroes: (selectedSeed.heroes ?? [])
+              .map(hydrateHero)
+              .filter((hero): hero is Hero => hero !== null),
           };
 
     loginAccount(nextAccount);
@@ -110,13 +113,8 @@ const HeroesScreen: FC = () => {
     setNameError(null);
   };
 
-  const getHeroSummary = (hero: Hero): string => {
-    if ("level" in hero && typeof (hero as { level?: unknown }).level === "number") {
-      return `Уровень: ${(hero as { level: number }).level}`;
-    }
-
-    return "Уровень: не задан";
-  };
+  const getHeroSummary = (hero: Hero): string =>
+    `Ур. ${hero.level} | XP ${hero.exp}/${getExpRequiredForNextLevel(hero.level)} | HP ${hero.stats.maxHp} | ATK ${hero.stats.attack} | DEF ${hero.stats.defense}`;
 
   return (
     <Space direction="vertical" size="middle" style={{ width: "100%", maxWidth: 560 }}>
