@@ -1,6 +1,6 @@
-import type { FC } from "react";
+﻿import type { FC } from "react";
 import { useEffect, useState } from "react";
-import { Button, Card, List, Space, Typography } from "antd";
+import { Button, Card, Input, List, Space, Typography } from "antd";
 import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { loadAccount } from "./data/accountStorage";
 import {
@@ -9,7 +9,7 @@ import {
   SEED_ACCOUNTS_STORAGE_KEY,
   type SeedAccount,
 } from "./data/seedAccounts";
-import type { Account } from "./models/account";
+import type { Account, Hero } from "./models/account";
 import { useAppStore } from "./store/useAppStore";
 
 const LoginScreen: FC = () => {
@@ -79,9 +79,7 @@ const LoginScreen: FC = () => {
           Войти
         </Button>
         {currentAccount && (
-          <Typography.Text type="secondary">
-            Текущий аккаунт: {currentAccount.login}
-          </Typography.Text>
+          <Typography.Text type="secondary">Текущий аккаунт: {currentAccount.login}</Typography.Text>
         )}
       </Space>
     </Space>
@@ -90,18 +88,73 @@ const LoginScreen: FC = () => {
 
 const HeroesScreen: FC = () => {
   const currentAccount = useAppStore((state) => state.currentAccount);
+  const addHeroToCurrentAccount = useAppStore((state) => state.addHeroToCurrentAccount);
+  const [heroName, setHeroName] = useState("");
+  const [nameError, setNameError] = useState<string | null>(null);
 
   if (!currentAccount) {
     return <Navigate to="/" replace />;
   }
 
+  const handleCreateHero = (): void => {
+    const normalizedName = heroName.trim();
+    if (!normalizedName) {
+      setNameError("Введите имя героя");
+      return;
+    }
+
+    addHeroToCurrentAccount(normalizedName);
+    setHeroName("");
+    setNameError(null);
+  };
+
+  const getHeroSummary = (hero: Hero): string => {
+    if ("level" in hero && typeof (hero as { level?: unknown }).level === "number") {
+      return `Уровень: ${(hero as { level: number }).level}`;
+    }
+
+    return "Уровень: не задан";
+  };
+
   return (
     <Space direction="vertical" size="middle" style={{ width: "100%", maxWidth: 560 }}>
-      <Typography.Title level={3}>Экран героев (заглушка)</Typography.Title>
+      <Typography.Title level={3}>Герои аккаунта</Typography.Title>
       <Typography.Text>
         Вход выполнен: {currentAccount.nickname} ({currentAccount.login})
       </Typography.Text>
-      <Typography.Text>Количество героев: {currentAccount.heroes.length}</Typography.Text>
+      <Card title={`Всего героев: ${currentAccount.heroes.length}`}>
+        <List
+          dataSource={currentAccount.heroes}
+          locale={{ emptyText: "Героев пока нет" }}
+          renderItem={(hero) => (
+            <List.Item>
+              <Space direction="vertical" size={0}>
+                <Typography.Text strong>{hero.name}</Typography.Text>
+                <Typography.Text type="secondary">{getHeroSummary(hero)}</Typography.Text>
+              </Space>
+            </List.Item>
+          )}
+        />
+      </Card>
+      <Card title="Создать героя">
+        <Space direction="vertical" size="small" style={{ width: "100%" }}>
+          <Input
+            value={heroName}
+            onChange={(event) => {
+              setHeroName(event.target.value);
+              if (nameError) {
+                setNameError(null);
+              }
+            }}
+            placeholder="Введите имя героя"
+            maxLength={32}
+          />
+          {nameError && <Typography.Text type="danger">{nameError}</Typography.Text>}
+          <Button type="primary" onClick={handleCreateHero}>
+            Создать героя
+          </Button>
+        </Space>
+      </Card>
     </Space>
   );
 };
@@ -139,12 +192,10 @@ const App: FC = () => {
   return (
     <main style={{ padding: 24 }}>
       {seedInitError && (
-        <Typography.Text type="danger">
-          Seed initialization error: {seedInitError}
-        </Typography.Text>
+        <Typography.Text type="danger">Seed initialization error: {seedInitError}</Typography.Text>
       )}
       <Typography.Paragraph type="secondary">
-        Router initialized. Store status: {isInitialized ? "ready" : "idle"}. Seed storage key:{" "}
+        Router initialized. Store status: {isInitialized ? "ready" : "idle"}. Seed storage key: {" "}
         {SEED_ACCOUNTS_STORAGE_KEY}
       </Typography.Paragraph>
       <Routes>
