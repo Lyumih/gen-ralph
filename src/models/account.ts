@@ -17,4 +17,5 @@ export type Account = {
   nickname: string;
   heroes: Hero[];
   activeHeroId?: string;
+  enemyCounter: number;
 };

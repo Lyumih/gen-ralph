@@ -10,6 +10,7 @@ import {
   type SeedAccount,
 } from "./data/seedAccounts";
 import type { Account, Hero } from "./models/account";
+import { createScaledEnemy } from "./models/enemy";
 import { getExpRequiredForNextLevel, hydrateHero } from "./models/heroProgression";
 import { useAppStore } from "./store/useAppStore";
 
@@ -45,6 +46,7 @@ const LoginScreen: FC = () => {
             heroes: (selectedSeed.heroes ?? [])
               .map(hydrateHero)
               .filter((hero): hero is Hero => hero !== null),
+            enemyCounter: 0,
           };
 
     loginAccount(nextAccount);
@@ -189,6 +191,16 @@ const BattleScreen: FC = () => {
   if (!activeHero) {
     return <Navigate to="/heroes" replace />;
   }
+  const enemyCounter = currentAccount.enemyCounter ?? 0;
+  const enemy = createScaledEnemy("training-golem", enemyCounter);
+  if (!enemy) {
+    return (
+      <Space direction="vertical" size="middle" style={{ width: "100%", maxWidth: 560 }}>
+        <Typography.Title level={3}>Заглушка боя</Typography.Title>
+        <Typography.Text type="danger">Не удалось создать врага для боя</Typography.Text>
+      </Space>
+    );
+  }
 
   return (
     <Space direction="vertical" size="middle" style={{ width: "100%", maxWidth: 560 }}>
@@ -199,6 +211,14 @@ const BattleScreen: FC = () => {
       <Typography.Text type="secondary">
         activeHeroId: {currentAccount.activeHeroId}
       </Typography.Text>
+      <Card title={`Враг: ${enemy.name}`}>
+        <Space direction="vertical" size={0}>
+          <Typography.Text type="secondary">enemyCounter: {enemy.counter}</Typography.Text>
+          <Typography.Text>HP: {enemy.stats.hp}</Typography.Text>
+          <Typography.Text>ATK: {enemy.stats.attack}</Typography.Text>
+          <Typography.Text>DEF: {enemy.stats.defense}</Typography.Text>
+        </Space>
+      </Card>
     </Space>
   );
 };

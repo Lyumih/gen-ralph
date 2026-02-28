@@ -30,12 +30,19 @@ const normalizeAccount = (value: unknown): Account | null => {
     normalizedHeroes.some((hero) => hero.id === candidate.activeHeroId)
       ? candidate.activeHeroId
       : undefined;
+  const enemyCounter =
+    typeof candidate.enemyCounter === "number" &&
+    Number.isFinite(candidate.enemyCounter) &&
+    candidate.enemyCounter >= 0
+      ? Math.floor(candidate.enemyCounter)
+      : 0;
 
   return {
     login: candidate.login,
     nickname: candidate.nickname,
     heroes: normalizedHeroes,
     activeHeroId,
+    enemyCounter,
   };
 };
 
