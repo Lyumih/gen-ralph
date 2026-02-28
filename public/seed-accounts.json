@@ -1,0 +1,12 @@
+[
+  {
+    "login": "mage.alpha",
+    "nickname": "Mage Alpha",
+    "heroes": []
+  },
+  {
+    "login": "mage.beta",
+    "nickname": "Mage Beta",
+    "heroes": []
+  }
+]
