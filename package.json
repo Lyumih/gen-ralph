@@ -1,11 +1,11 @@
-﻿{
+{
   "name": "gen-ralph",
   "private": true,
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "node scripts/dev-server.mjs",
+    "build": "tsc -b",
     "preview": "vite preview"
   },
   "dependencies": {
