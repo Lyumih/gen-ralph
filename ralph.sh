@@ -104,7 +104,7 @@ while has_pending_tasks; do
     prompt=$(cat <<EOF
 @${TASKS_FILE} @${PROGRESS_FILE} @${PRD_FILE}
 
-Контекст: проект Gen — браузерная пошаговая RPG (см. PRD). Стек: React + TypeScript, Vite, Zustand, Ant Design, React Router. Код только на React+TypeScript, без \$mol.
+Контекст: проект Gen — браузерная пошаговая RPG (см. PRD). Стек: React + TypeScript, Vite, Zustand, Ant Design, React Router. Код только на React+TypeScript.
 
 1. Найди задачу с наивысшим приоритетом и статусом pending, у которой все зависимости уже в статусе done. Работай ТОЛЬКО над этой задачей.
 2. Перед завершением проверь: выполни \`npm run build\` (и при наличии \`npm run lint\`). Сборка должна проходить без ошибок.
