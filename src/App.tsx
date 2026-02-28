@@ -188,6 +188,7 @@ const BattleScreen: FC = () => {
   const setCurrentTurn = useAppStore((state) => state.setCurrentTurn);
   const pushBattleLog = useAppStore((state) => state.pushBattleLog);
   const setAbilityCooldown = useAppStore((state) => state.setAbilityCooldown);
+  const performWeaponAttack = useAppStore((state) => state.performWeaponAttack);
 
   if (!currentAccount) {
     return <Navigate to="/" replace />;
@@ -217,7 +218,12 @@ const BattleScreen: FC = () => {
       <Typography.Text>
         В бой выбран герой: <Typography.Text strong>{activeHero.name}</Typography.Text>
       </Typography.Text>
-      <Typography.Text type="secondary">Ход: {battle.currentTurn === "player" ? "игрок" : "враг"}</Typography.Text>
+      <Typography.Text type="secondary">
+        Ход: {battle.currentTurn === "player" ? "игрок" : "враг"}
+      </Typography.Text>
+      <Typography.Text type={battle.isActive ? "secondary" : "success"}>
+        Статус боя: {battle.isActive ? "в процессе" : "победа"}
+      </Typography.Text>
       <Card title={`Враг: ${battle.enemy.name}`}>
         <Space direction="vertical" size={0}>
           <Typography.Text type="secondary">enemyCounter: {battle.enemy.counter}</Typography.Text>
@@ -233,6 +239,9 @@ const BattleScreen: FC = () => {
         </Space>
       </Card>
       <Space wrap>
+        <Button type="primary" onClick={performWeaponAttack} disabled={!battle.isActive}>
+          Удар оружием
+        </Button>
         <Button onClick={() => setPlayerHp(battle.playerHp - 10)}>Герой -10 HP</Button>
         <Button onClick={() => setEnemyHp(battle.enemyHp - 10)}>Враг -10 HP</Button>
         <Button

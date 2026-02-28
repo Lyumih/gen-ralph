@@ -3,6 +3,7 @@ import { loadAccount, saveAccount } from "../data/accountStorage";
 import type { Account, Hero } from "../models/account";
 import { createScaledEnemy, type BattleEnemy } from "../models/enemy";
 import { createNewHero } from "../models/heroProgression";
+import { calculateWeaponDamage } from "../models/battle";
 
 const createHero = (name: string): Hero => {
   const normalizedName = name.trim();
@@ -25,6 +26,7 @@ type AppState = {
   setCurrentTurn: (nextTurn: BattleTurn) => void;
   pushBattleLog: (message: string) => void;
   setAbilityCooldown: (abilityId: string, turns: number) => void;
+  performWeaponAttack: () => void;
 };
 
 type BattleTurn = "player" | "enemy";
@@ -210,6 +212,51 @@ export const useAppStore = create<AppState>((set) => ({
             ...state.battle.abilityCooldowns,
             [normalizedAbilityId]: normalizedTurns,
           },
+        },
+      };
+    }),
+  performWeaponAttack: () =>
+    set((state) => {
+      if (!state.currentAccount?.activeHeroId || !state.battle.isActive || !state.battle.enemy) {
+        return state;
+      }
+
+      if (state.battle.currentTurn !== "player") {
+        return state;
+      }
+
+      const activeHero = state.currentAccount.heroes.find(
+        (hero) => hero.id === state.currentAccount?.activeHeroId,
+      );
+      if (!activeHero) {
+        return state;
+      }
+
+      const damage = calculateWeaponDamage(activeHero.stats.attack, state.battle.enemy.stats.defense);
+      const nextEnemyHp = Math.max(0, state.battle.enemyHp - damage);
+      const nextLog = [
+        ...state.battle.battleLog,
+        `${activeHero.name} атакует оружием и наносит ${damage} урона.`,
+      ];
+
+      if (nextEnemyHp <= 0) {
+        return {
+          battle: {
+            ...state.battle,
+            enemyHp: 0,
+            isActive: false,
+            currentTurn: "player",
+            battleLog: [...nextLog, `Победа! ${state.battle.enemy.name} повержен.`],
+          },
+        };
+      }
+
+      return {
+        battle: {
+          ...state.battle,
+          enemyHp: nextEnemyHp,
+          currentTurn: "player",
+          battleLog: [...nextLog, `HP врага: ${nextEnemyHp}/${state.battle.enemyMaxHp}.`],
         },
       };
     }),
