@@ -10,7 +10,6 @@ import {
   type SeedAccount,
 } from "./data/seedAccounts";
 import type { Account, Hero } from "./models/account";
-import { createScaledEnemy } from "./models/enemy";
 import { getExpRequiredForNextLevel, hydrateHero } from "./models/heroProgression";
 import { useAppStore } from "./store/useAppStore";
 
@@ -182,6 +181,13 @@ const HeroesScreen: FC = () => {
 
 const BattleScreen: FC = () => {
   const currentAccount = useAppStore((state) => state.currentAccount);
+  const battle = useAppStore((state) => state.battle);
+  const startBattle = useAppStore((state) => state.startBattle);
+  const setPlayerHp = useAppStore((state) => state.setPlayerHp);
+  const setEnemyHp = useAppStore((state) => state.setEnemyHp);
+  const setCurrentTurn = useAppStore((state) => state.setCurrentTurn);
+  const pushBattleLog = useAppStore((state) => state.pushBattleLog);
+  const setAbilityCooldown = useAppStore((state) => state.setAbilityCooldown);
 
   if (!currentAccount) {
     return <Navigate to="/" replace />;
@@ -191,33 +197,73 @@ const BattleScreen: FC = () => {
   if (!activeHero) {
     return <Navigate to="/heroes" replace />;
   }
-  const enemyCounter = currentAccount.enemyCounter ?? 0;
-  const enemy = createScaledEnemy("training-golem", enemyCounter);
-  if (!enemy) {
+
+  useEffect(() => {
+    startBattle("training-golem");
+  }, [startBattle]);
+
+  if (!battle.isActive || !battle.enemy) {
     return (
       <Space direction="vertical" size="middle" style={{ width: "100%", maxWidth: 560 }}>
-        <Typography.Title level={3}>Заглушка боя</Typography.Title>
-        <Typography.Text type="danger">Не удалось создать врага для боя</Typography.Text>
+        <Typography.Title level={3}>Бой</Typography.Title>
+        <Typography.Text type="danger">Не удалось инициализировать состояние боя</Typography.Text>
       </Space>
     );
   }
 
   return (
     <Space direction="vertical" size="middle" style={{ width: "100%", maxWidth: 560 }}>
-      <Typography.Title level={3}>Заглушка боя</Typography.Title>
+      <Typography.Title level={3}>Бой</Typography.Title>
       <Typography.Text>
         В бой выбран герой: <Typography.Text strong>{activeHero.name}</Typography.Text>
       </Typography.Text>
-      <Typography.Text type="secondary">
-        activeHeroId: {currentAccount.activeHeroId}
-      </Typography.Text>
-      <Card title={`Враг: ${enemy.name}`}>
+      <Typography.Text type="secondary">Ход: {battle.currentTurn === "player" ? "игрок" : "враг"}</Typography.Text>
+      <Card title={`Враг: ${battle.enemy.name}`}>
         <Space direction="vertical" size={0}>
-          <Typography.Text type="secondary">enemyCounter: {enemy.counter}</Typography.Text>
-          <Typography.Text>HP: {enemy.stats.hp}</Typography.Text>
-          <Typography.Text>ATK: {enemy.stats.attack}</Typography.Text>
-          <Typography.Text>DEF: {enemy.stats.defense}</Typography.Text>
+          <Typography.Text type="secondary">enemyCounter: {battle.enemy.counter}</Typography.Text>
+          <Typography.Text>
+            HP героя: {battle.playerHp}/{battle.playerMaxHp}
+          </Typography.Text>
+          <Typography.Text>
+            HP врага: {battle.enemyHp}/{battle.enemyMaxHp}
+          </Typography.Text>
+          <Typography.Text>ATK врага: {battle.enemy.stats.attack}</Typography.Text>
+          <Typography.Text>DEF врага: {battle.enemy.stats.defense}</Typography.Text>
+          <Typography.Text>КД умений: {JSON.stringify(battle.abilityCooldowns)}</Typography.Text>
         </Space>
+      </Card>
+      <Space wrap>
+        <Button onClick={() => setPlayerHp(battle.playerHp - 10)}>Герой -10 HP</Button>
+        <Button onClick={() => setEnemyHp(battle.enemyHp - 10)}>Враг -10 HP</Button>
+        <Button
+          onClick={() => {
+            const nextTurn = battle.currentTurn === "player" ? "enemy" : "player";
+            setCurrentTurn(nextTurn);
+            pushBattleLog(`Смена хода: ${nextTurn === "player" ? "игрок" : "враг"}.`);
+          }}
+        >
+          Сменить ход
+        </Button>
+        <Button
+          onClick={() => {
+            const nextCooldown =
+              battle.abilityCooldowns.fireball && battle.abilityCooldowns.fireball > 0
+                ? battle.abilityCooldowns.fireball - 1
+                : 3;
+            setAbilityCooldown("fireball", nextCooldown);
+            pushBattleLog(`КД Fireball: ${nextCooldown}`);
+          }}
+        >
+          Обновить КД
+        </Button>
+      </Space>
+      <Card title="Лог боя">
+        <List
+          size="small"
+          dataSource={battle.battleLog}
+          locale={{ emptyText: "Лог пуст" }}
+          renderItem={(entry) => <List.Item>{entry}</List.Item>}
+        />
       </Card>
     </Space>
   );

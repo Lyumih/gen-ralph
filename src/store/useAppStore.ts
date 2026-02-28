@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { loadAccount, saveAccount } from "../data/accountStorage";
 import type { Account, Hero } from "../models/account";
+import { createScaledEnemy, type BattleEnemy } from "../models/enemy";
 import { createNewHero } from "../models/heroProgression";
 
 const createHero = (name: string): Hero => {
@@ -12,15 +13,50 @@ const createHero = (name: string): Hero => {
 type AppState = {
   isInitialized: boolean;
   currentAccount: Account | null;
+  battle: BattleState;
   setInitialized: (value: boolean) => void;
   loginAccount: (account: Account) => void;
   addHeroToCurrentAccount: (heroName: string) => void;
   setActiveHeroForCurrentAccount: (heroId: string) => void;
+  startBattle: (enemyId: string) => boolean;
+  resetBattle: () => void;
+  setPlayerHp: (nextHp: number) => void;
+  setEnemyHp: (nextHp: number) => void;
+  setCurrentTurn: (nextTurn: BattleTurn) => void;
+  pushBattleLog: (message: string) => void;
+  setAbilityCooldown: (abilityId: string, turns: number) => void;
 };
+
+type BattleTurn = "player" | "enemy";
+
+type BattleState = {
+  isActive: boolean;
+  playerHp: number;
+  playerMaxHp: number;
+  enemy: BattleEnemy | null;
+  enemyHp: number;
+  enemyMaxHp: number;
+  currentTurn: BattleTurn;
+  battleLog: string[];
+  abilityCooldowns: Record<string, number>;
+};
+
+const createInitialBattleState = (): BattleState => ({
+  isActive: false,
+  playerHp: 0,
+  playerMaxHp: 0,
+  enemy: null,
+  enemyHp: 0,
+  enemyMaxHp: 0,
+  currentTurn: "player",
+  battleLog: [],
+  abilityCooldowns: {},
+});
 
 export const useAppStore = create<AppState>((set) => ({
   isInitialized: false,
   currentAccount: loadAccount(),
+  battle: createInitialBattleState(),
   setInitialized: (value) => set({ isInitialized: value }),
   loginAccount: (account) => {
     saveAccount(account);
@@ -71,4 +107,110 @@ export const useAppStore = create<AppState>((set) => ({
       return { currentAccount: nextAccount };
     });
   },
+  startBattle: (enemyId) => {
+    const normalizedEnemyId = enemyId.trim();
+    if (!normalizedEnemyId) {
+      return false;
+    }
+
+    let didStartBattle = false;
+
+    set((state) => {
+      if (!state.currentAccount?.activeHeroId) {
+        return state;
+      }
+
+      const activeHero = state.currentAccount.heroes.find(
+        (hero) => hero.id === state.currentAccount?.activeHeroId,
+      );
+      if (!activeHero) {
+        return state;
+      }
+
+      const enemy = createScaledEnemy(normalizedEnemyId, state.currentAccount.enemyCounter ?? 0);
+      if (!enemy) {
+        return state;
+      }
+
+      didStartBattle = true;
+      return {
+        battle: {
+          isActive: true,
+          playerHp: activeHero.stats.maxHp,
+          playerMaxHp: activeHero.stats.maxHp,
+          enemy,
+          enemyHp: enemy.stats.hp,
+          enemyMaxHp: enemy.stats.hp,
+          currentTurn: "player",
+          battleLog: [
+            `Бой начался: ${activeHero.name} против ${enemy.name}.`,
+            `HP героя: ${activeHero.stats.maxHp}, HP врага: ${enemy.stats.hp}.`,
+          ],
+          abilityCooldowns: {},
+        },
+      };
+    });
+
+    return didStartBattle;
+  },
+  resetBattle: () => set({ battle: createInitialBattleState() }),
+  setPlayerHp: (nextHp) =>
+    set((state) => {
+      const normalizedHp = Number.isFinite(nextHp) ? Math.floor(nextHp) : state.battle.playerHp;
+      return {
+        battle: {
+          ...state.battle,
+          playerHp: Math.max(0, Math.min(state.battle.playerMaxHp, normalizedHp)),
+        },
+      };
+    }),
+  setEnemyHp: (nextHp) =>
+    set((state) => {
+      const normalizedHp = Number.isFinite(nextHp) ? Math.floor(nextHp) : state.battle.enemyHp;
+      return {
+        battle: {
+          ...state.battle,
+          enemyHp: Math.max(0, Math.min(state.battle.enemyMaxHp, normalizedHp)),
+        },
+      };
+    }),
+  setCurrentTurn: (nextTurn) =>
+    set((state) => ({
+      battle: {
+        ...state.battle,
+        currentTurn: nextTurn,
+      },
+    })),
+  pushBattleLog: (message) =>
+    set((state) => {
+      const normalizedMessage = message.trim();
+      if (!normalizedMessage) {
+        return state;
+      }
+
+      return {
+        battle: {
+          ...state.battle,
+          battleLog: [...state.battle.battleLog, normalizedMessage],
+        },
+      };
+    }),
+  setAbilityCooldown: (abilityId, turns) =>
+    set((state) => {
+      const normalizedAbilityId = abilityId.trim();
+      if (!normalizedAbilityId) {
+        return state;
+      }
+
+      const normalizedTurns = Number.isFinite(turns) ? Math.max(0, Math.floor(turns)) : 0;
+      return {
+        battle: {
+          ...state.battle,
+          abilityCooldowns: {
+            ...state.battle.abilityCooldowns,
+            [normalizedAbilityId]: normalizedTurns,
+          },
+        },
+      };
+    }),
 }));
