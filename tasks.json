@@ -88,7 +88,7 @@
         "Шаг 3: Ожидаемый результат — данные персистятся"
       ],
       "dependencies": ["TASK-002"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-005",
