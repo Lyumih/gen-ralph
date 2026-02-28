@@ -16,6 +16,7 @@ type AppState = {
   setInitialized: (value: boolean) => void;
   loginAccount: (account: Account) => void;
   addHeroToCurrentAccount: (heroName: string) => void;
+  setActiveHeroForCurrentAccount: (heroId: string) => void;
 };
 
 export const useAppStore = create<AppState>((set) => ({
@@ -40,6 +41,31 @@ export const useAppStore = create<AppState>((set) => ({
       const nextAccount: Account = {
         ...state.currentAccount,
         heroes: [...state.currentAccount.heroes, createHero(normalizedName)],
+      };
+
+      saveAccount(nextAccount);
+      return { currentAccount: nextAccount };
+    });
+  },
+  setActiveHeroForCurrentAccount: (heroId) => {
+    const normalizedHeroId = heroId.trim();
+    if (!normalizedHeroId) {
+      return;
+    }
+
+    set((state) => {
+      if (!state.currentAccount) {
+        return state;
+      }
+
+      const heroExists = state.currentAccount.heroes.some((hero) => hero.id === normalizedHeroId);
+      if (!heroExists) {
+        return state;
+      }
+
+      const nextAccount: Account = {
+        ...state.currentAccount,
+        activeHeroId: normalizedHeroId,
       };
 
       saveAccount(nextAccount);

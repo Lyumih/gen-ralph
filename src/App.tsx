@@ -87,8 +87,10 @@ const LoginScreen: FC = () => {
 };
 
 const HeroesScreen: FC = () => {
+  const navigate = useNavigate();
   const currentAccount = useAppStore((state) => state.currentAccount);
   const addHeroToCurrentAccount = useAppStore((state) => state.addHeroToCurrentAccount);
+  const setActiveHeroForCurrentAccount = useAppStore((state) => state.setActiveHeroForCurrentAccount);
   const [heroName, setHeroName] = useState("");
   const [nameError, setNameError] = useState<string | null>(null);
 
@@ -122,15 +124,27 @@ const HeroesScreen: FC = () => {
       <Typography.Text>
         Вход выполнен: {currentAccount.nickname} ({currentAccount.login})
       </Typography.Text>
+      <Typography.Text type="secondary">
+        Активный герой:{" "}
+        {currentAccount.heroes.find((hero) => hero.id === currentAccount.activeHeroId)?.name ?? "не выбран"}
+      </Typography.Text>
       <Card title={`Всего героев: ${currentAccount.heroes.length}`}>
         <List
           dataSource={currentAccount.heroes}
           locale={{ emptyText: "Героев пока нет" }}
           renderItem={(hero) => (
             <List.Item>
-              <Space direction="vertical" size={0}>
-                <Typography.Text strong>{hero.name}</Typography.Text>
-                <Typography.Text type="secondary">{getHeroSummary(hero)}</Typography.Text>
+              <Space style={{ width: "100%", justifyContent: "space-between" }} align="start">
+                <Space direction="vertical" size={0}>
+                  <Typography.Text strong>{hero.name}</Typography.Text>
+                  <Typography.Text type="secondary">{getHeroSummary(hero)}</Typography.Text>
+                </Space>
+                <Button
+                  type={currentAccount.activeHeroId === hero.id ? "primary" : "default"}
+                  onClick={() => setActiveHeroForCurrentAccount(hero.id)}
+                >
+                  {currentAccount.activeHeroId === hero.id ? "Активный" : "Выбрать"}
+                </Button>
               </Space>
             </List.Item>
           )}
@@ -155,6 +169,38 @@ const HeroesScreen: FC = () => {
           </Button>
         </Space>
       </Card>
+      <Button
+        type="primary"
+        disabled={!currentAccount.activeHeroId}
+        onClick={() => navigate("/battle")}
+      >
+        К бою
+      </Button>
+    </Space>
+  );
+};
+
+const BattleScreen: FC = () => {
+  const currentAccount = useAppStore((state) => state.currentAccount);
+
+  if (!currentAccount) {
+    return <Navigate to="/" replace />;
+  }
+
+  const activeHero = currentAccount.heroes.find((hero) => hero.id === currentAccount.activeHeroId);
+  if (!activeHero) {
+    return <Navigate to="/heroes" replace />;
+  }
+
+  return (
+    <Space direction="vertical" size="middle" style={{ width: "100%", maxWidth: 560 }}>
+      <Typography.Title level={3}>Заглушка боя</Typography.Title>
+      <Typography.Text>
+        В бой выбран герой: <Typography.Text strong>{activeHero.name}</Typography.Text>
+      </Typography.Text>
+      <Typography.Text type="secondary">
+        activeHeroId: {currentAccount.activeHeroId}
+      </Typography.Text>
     </Space>
   );
 };
@@ -201,6 +247,7 @@ const App: FC = () => {
       <Routes>
         <Route path="/" element={<LoginScreen />} />
         <Route path="/heroes" element={<HeroesScreen />} />
+        <Route path="/battle" element={<BattleScreen />} />
       </Routes>
     </main>
   );
